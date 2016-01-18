@@ -11,6 +11,7 @@ import textwrap
 from openerp.cli import Command
 from openerp.tools import config
 import openerp.release
+import yaml
 
 import purpledrill
 from .. import api
@@ -23,6 +24,81 @@ class Screwdriver(Command):
     """
 
     def run(self, args):
+        options = self.parse_args(args)
+        init = {}
+        update = {}
+        if options.scratch:
+            purpledrill.drop_database(options.database)
+            init['screwdriver'] = 1
+        else:
+            update['screwdriver'] = 1
+        with purpledrill.openerp_env(
+            db_name=options.database,
+            without_demo=options.without_demo,
+            init=init,
+            update=update
+        ) as env:
+            self.update_addon_config(env, args.conf)
+
+    def get_action_plan_by_config(self, env, conff):
+        system = self.get_module_information(env)
+        stored = self.get_module_configuration(env)
+        expected = self.get_expected_configuration(env)
+
+    def get_module_information(self, env):
+        """
+        Gives back the list of modules.
+        Return:
+            dict - module information
+                key: name of module
+                value is a dict with keys: state, is_outdated, dependencies
+        """
+        odoover = openerp.release.major_version
+        stored = env['ir.module.module'].search([])
+        modules = {}
+        for s in stored:
+            is_outdated = s.state == 'installed' and \
+                api.get_version(odoover, s.latest_version) != \
+                api.get_version(odoover, s.installed_version)
+            dependencies = {}
+            modules[s['name']] = {
+                'state': s['state'],
+                'is_outdated': is_outdated,
+                'dependencies': dependencies,
+            }
+        return modules
+
+    def get_dependency_graph(self, env):
+        pass
+
+    def get_module_configuration(self, env):
+        """
+        Gives back the stored configuration
+
+        Return:
+            dict - key: name of module, value is a dict (state)
+        """
+        stored = env['purple.screwdriver.config.addon'].read(['name', 'state'])
+        modules = {}
+        for s in stored:
+            modules[s['name']] = s
+        return modules
+
+    def get_expected_configuration(self, conf_file):
+        """
+        Gives back the expected state of modules
+
+        Return:
+            dict - key: name of module, dict of config (state)
+        """
+        with(open(conf_file)) as f:
+            conf = yaml.load(f.read())
+        modules = {}
+        for name in conf['addons']:
+            modules[name] = conf['addons'][name]
+        return modules
+
+    def run_old(self, args):
         options = self.parse_args(args)
         path, tweaks = self.get_tweaks()
         init = {}
@@ -103,8 +179,8 @@ class Screwdriver(Command):
                 By default loads demo data """
         )
         parser.add_argument(
-            'forced', nargs="*",
-            help="Force tweak to execute"
+            '-c', '--conf', dest='conffile', required=True,
+            help='Screwdriver configuration'
         )
         return parser
 
