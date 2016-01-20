@@ -1,3 +1,17 @@
+import collections
+
+
+ModuleState = collections.namedtuple(
+    'ModuleState', ['name', 'state', 'is_outdated']
+)
+ModuleConfig = collections.namedtuple(
+    'ModuleCondig', ['name', 'state']
+)
+Action = collections.namedtuple(
+    'Action', ['name', 'action']
+)
+
+
 def get_action(name, expected_version, available_version, installed_version, state):
     # When have to remove
     if(
@@ -46,3 +60,42 @@ def get_version(release, module):
     if module.count('.') >= 2:
         return module
     return '%s.%s' % (release, module)
+
+
+class ActionPlanBuilder(object):
+
+    def __init__(self, system, stored, expected):
+        self.system = system
+        self.stored = stored
+        self.expected = expected
+        pass
+
+    def build(self):
+        actions = []
+
+        for mod in self.stored:
+            if mod not in self.expected:
+                actions.append(Action(mod, 'to remove'))
+
+        for exp in self.expected.values():
+            if(
+                self.system[exp.name].state == 'uninstalled'
+                and exp.state == 'installed'
+            ):
+                actions.append(Action(exp.name, 'to install'))
+                continue
+            if(
+                self.system[exp.name].state == 'installed'
+                and exp.state == 'installed'
+                and self.system[exp.name].is_outdated
+            ):
+                actions.append(Action(exp.name, 'to update'))
+                continue
+            if exp.state == 'updated':
+                installed = self.system[exp.name].state == 'installed'
+                if installed:
+                    actions.append(Action(exp.name, 'to update'))
+                else:
+                    actions.append(Action(exp.name, 'to install'))
+                continue
+        return actions

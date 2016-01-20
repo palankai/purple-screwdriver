@@ -15,7 +15,6 @@ an already installed module from the config file in order of uninstall.
 | none            | installed   | removed from config  | uninstall  |
 | installed       | uninstalled |                      | install    |
 | installed       | installed   |                      | do nothing |
-| installed       | installed   | ver Avail = ver Inst | do nothing |
 | installed       | installed   | ver Avail > ver Inst | update     |
 | updated         | uninstalled |                      | install    |
 | updated         | installed   |                      | update     |

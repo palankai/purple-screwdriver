@@ -13,7 +13,7 @@ from openerp.tools import config
 import openerp.release
 import yaml
 
-import purpledrill
+import purplespade
 from .. import api
 
 _logger = logging.getLogger(__name__)
@@ -28,60 +28,75 @@ class Screwdriver(Command):
         init = {}
         update = {}
         if options.scratch:
-            purpledrill.drop_database(options.database)
+            purplespade.drop_database(options.database)
             init['screwdriver'] = 1
         else:
             update['screwdriver'] = 1
-        with purpledrill.openerp_env(
+
+        actions = {
+            'to remove': self._to_remove,
+            'to install': self._to_install,
+            'to update': self._to_update
+        }
+
+        with purplespade.openerp_env(
             db_name=options.database,
             without_demo=options.without_demo,
             init=init,
             update=update
         ) as env:
-            self.update_addon_config(env, args.conf)
+            modules = self.get_modules()
+            action_plan = self.build_action_plan(
+                env, options.conffile, modules
+            )
+            for action in action_plan:
+                actions[action.action](modules[action.name])
 
-    def get_action_plan_by_config(self, env, conff):
-        system = self.get_module_information(env)
-        stored = self.get_module_configuration(env)
-        expected = self.get_expected_configuration(env)
+    def get_modules(self, env):
+        modules = {}
+        for m in env['ir.module.module'].search([]):
+            modules[m.name] = m
+        return modules
 
-    def get_module_information(self, env):
+    def build_action_plan(self, env, conff, modules):
+        builder = api.ActionPlan(
+            system=self.get_module_information(env, modules),
+            stored=self.get_module_configuration(env),
+            expected=self.get_expected_configuration(env),
+        )
+        return builder.build()
+
+    def get_module_information(self, env, modules):
         """
         Gives back the list of modules.
         Return:
-            dict - module information
-                key: name of module
-                value is a dict with keys: state, is_outdated, dependencies
+            dict of api.ModuleState tuple
         """
         odoover = openerp.release.major_version
-        stored = env['ir.module.module'].search([])
         modules = {}
-        for s in stored:
+        for s in modules.values():
             is_outdated = s.state == 'installed' and \
                 api.get_version(odoover, s.latest_version) != \
                 api.get_version(odoover, s.installed_version)
-            dependencies = {}
-            modules[s['name']] = {
-                'state': s['state'],
-                'is_outdated': is_outdated,
-                'dependencies': dependencies,
-            }
+            modules[s['name']] = api.ModuleState(
+                id=s.id, is_outdated=is_outdated, state=s['state']
+            )
         return modules
 
-    def get_dependency_graph(self, env):
-        pass
 
     def get_module_configuration(self, env):
         """
         Gives back the stored configuration
 
         Return:
-            dict - key: name of module, value is a dict (state)
+            dict of api.ModuleConfig tuple
         """
         stored = env['purple.screwdriver.config.addon'].read(['name', 'state'])
         modules = {}
         for s in stored:
-            modules[s['name']] = s
+            modules[s['name']] = api.ModuleConfig(
+                id=s['id'], name=s['name'], state=s['state']
+            )
         return modules
 
     def get_expected_configuration(self, conf_file):
@@ -89,14 +104,32 @@ class Screwdriver(Command):
         Gives back the expected state of modules
 
         Return:
-            dict - key: name of module, dict of config (state)
+            dict of api.ModuleConfig
         """
         with(open(conf_file)) as f:
             conf = yaml.load(f.read())
         modules = {}
         for name in conf['addons']:
-            modules[name] = conf['addons'][name]
+            modules[name] = api.ModuleConfig(
+                id=None, name=name, state=conf['addons'][name]
+            )
         return modules
+
+    def _to_remove(self, module):
+        module.state = 'to remove'
+        _logger.info('Module %s marked to be removed', module.name)
+
+    def _to_install(self, module):
+        module.state_update(
+            'to install', ['uninstalled']
+        )
+        _logger.info('Module %s marked to be installed', module.name)
+
+    def _to_update(self, module):
+        module.state_update(
+            'to update', ['installed']
+        )
+        _logger.info('Module %s marked to be updated', module.name)
 
     def run_old(self, args):
         options = self.parse_args(args)
@@ -104,14 +137,14 @@ class Screwdriver(Command):
         init = {}
         update = {}
         if options.scratch:
-            purpledrill.drop_database(options.database)
+            purpledspade.drop_database(options.database)
             init['screwdriver'] = 1
         else:
             update['screwdriver'] = 1
 
         total_changes = 0
         # First round, gather data, mark modules
-        with purpledrill.openerp_env(
+        with purplespade.openerp_env(
             db_name=options.database,
             without_demo=options.without_demo,
             init=init,
