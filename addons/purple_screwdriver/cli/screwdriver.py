@@ -51,6 +51,15 @@ class Screwdriver(Command):
             )
             for action in action_plan:
                 actions[action.action](modules[action.name])
+            # TODO Store config changes!!!
+            if action_plan:
+                _logger.info('Appling %s modification', len(action_plan))
+                upgrader = env['base.module.upgrade'].create({})
+                env.cr.commit()
+                upgrader.upgrade_module()
+                _logger.info('Changes applied')
+            else:
+                _logger.info('No addon modification')
 
     def get_modules(self, env):
         modules = {}
@@ -131,63 +140,6 @@ class Screwdriver(Command):
         )
         _logger.info('Module %s marked to be updated', module.name)
 
-    def run_old(self, args):
-        options = self.parse_args(args)
-        path, tweaks = self.get_tweaks()
-        init = {}
-        update = {}
-        if options.scratch:
-            purpledspade.drop_database(options.database)
-            init['screwdriver'] = 1
-        else:
-            update['screwdriver'] = 1
-
-        total_changes = 0
-        # First round, gather data, mark modules
-        with purplespade.openerp_env(
-            db_name=options.database,
-            without_demo=options.without_demo,
-            init=init,
-            update=update
-        ) as env:
-            addons = config.misc['addons']
-            modules = env['ir.module.module'].search([('name', 'in', addons.keys())])
-            for m in modules:
-                odoover = openerp.release.major_version
-                expected_version = api.get_version(odoover, addons[m.name])
-                # Field names are incorrect in the field definition of
-                # it.module.module.
-                installed_version = api.get_version(odoover, m.latest_version)
-                available_version = api.get_version(
-                    odoover, m.installed_version
-                )
-                action = api.get_action(
-                    m.name,
-                    expected_version=expected_version,
-                    available_version=available_version,
-                    installed_version=installed_version,
-                    state=m.state
-                )
-                if action:
-                    m.state_update(action, [m.state])
-                    total_changes += 1
-                    _logger.info('Module %s marked %s', m.name, action)
-
-            if total_changes:
-                _logger.info('Appling %s modification', total_changes)
-                upgrader = env['base.module.upgrade'].create({})
-                env.cr.commit()
-                upgrader.upgrade_module()
-                _logger.info('Changes applied')
-            else:
-                _logger.info('No addon modification')
-
-    def get_applied_tweaks(self, env, forced):
-        Tweak = env["purple.screwdriver.tweak"]
-        return [
-            tweak.name for tweak in Tweak.search([('name','not in', forced)])
-        ]
-
     def get_parser(self):
         doc_paras = self.__doc__.split('\n\n')
         parser = argparse.ArgumentParser(
@@ -221,44 +173,3 @@ class Screwdriver(Command):
         parser = self.get_parser()
         options = parser.parse_args(args)
         return options
-
-    def get_tweaks(self):
-        path = self._get_tweaks_path()
-        tweaks = []
-        for filepath in glob.glob(os.path.join(path, "*.py")):
-            fn = os.path.basename(filepath)
-            if fn != "__init__.py":
-                mod, _ = os.path.splitext(fn)
-                tweaks.append(mod)
-        return path, sorted(tweaks)
-
-    def _get_tweaks_path(self):
-        path = config.get("tweaks", None)
-        if not path:
-            print(
-                "Setup 'tweaks' in config file, it should be"
-                " the absoulte path of tweaks directory"
-            )
-            sys.exit(1)
-        return path
-
-    def apply(self, env, tweaks, exclude):
-        todo = []
-        for name in tweaks:
-            if not name in exclude:
-                todo.append(name)
-        if not todo:
-            _logger.info('Nothing to do')
-        for name in todo:
-            self.apply_tweak(env, name)
-
-    def apply_tweak(self, env, name, store=True):
-        mod = importlib.import_module(name)
-        _logger.info('Apply: %s', name)
-        mod.main()
-        if store:
-            self.store_applied(env, name)
-
-    def store_applied(self, env, name):
-        Tweak = env["purple.screwdriver.tweak"]
-        Tweak.create({"name": name})
