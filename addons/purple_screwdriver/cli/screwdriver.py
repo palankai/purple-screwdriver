@@ -1,11 +1,7 @@
 from __future__ import print_function
 
 import argparse
-import glob
-import importlib
 import logging
-import os
-import sys
 import textwrap
 
 from openerp.cli import Command
@@ -25,50 +21,28 @@ class Screwdriver(Command):
 
     def run(self, args):
         options = self.parse_args(args)
-        init = {}
-        update = {}
         if options.scratch:
             purplespade.drop_database(options.database)
 
         actions = {
             'to remove': self._to_remove,
             'to install': self._to_install,
-            'to update': self._to_upgrade
+            'to upgrade': self._to_upgrade
         }
         with purplespade.openerp_env(
             db_name=options.database,
             without_demo=options.without_demo,
         ) as env:
-            self.ensure_screwdriver(env)
-        with purplespade.openerp_env(
-            db_name=options.database,
-            without_demo=options.without_demo,
-            init=init,
-            update=update
-        ) as env:
             modules = self.get_modules(env)
-            assert modules['purple_screwdriver'].state == 'installed'
             builder = api.ActionPlanBuilder(
                 system=self.get_module_information(env, modules),
-                stored=self.get_module_configuration(env),
                 expected=self.get_expected_configuration(options.conffile),
             )
             action_plan = builder.build()
             for action in action_plan:
                 actions[action.action](modules[action.name])
                 env.cr.commit()
-            self.store_configuration(env, builder.stored, builder.expected)
-            env.cr.commit()
-
-            #if action_plan:
-            #    _logger.info('Appling %s modification', len(action_plan))
-            #    upgrader = env['base.module.upgrade'].create({})
-            #    self.store_configuration(env, builder.stored, builder.expected)
-            #    env.cr.commit()
-            #    upgrader.upgrade_module()
-            #    _logger.info('Changes applied')
-            #else:
-            #    _logger.info('No addon modification')
+                env.clear()
 
     def get_modules(self, env):
         modules = {}
@@ -92,22 +66,6 @@ class Screwdriver(Command):
                 name=s['name'], is_outdated=is_outdated, state=s['state']
             )
         return result
-
-
-    def get_module_configuration(self, env):
-        """
-        Gives back the stored configuration
-
-        Return:
-            dict of api.ModuleConfig tuple
-       """
-        stored = env['purple.screwdriver.config.addon'].search([]).read(['name', 'state'])
-        modules = {}
-        for s in stored:
-            modules[s['name']] = api.ModuleConfig(
-                name=s['name'], state=s['state']
-            )
-        return modules
 
     def get_expected_configuration(self, conf_file):
         """
@@ -133,34 +91,12 @@ class Screwdriver(Command):
             self._to_install(m)
         if m.state == 'installed':
             self._to_upgrade(m)
-
-        upgrader = env['base.module.upgrade'].create({})
         env.cr.commit()
-        upgrader.upgrade_module()
-
-    def store_configuration(self, env, stored, config):
-        model = env['purple.screwdriver.config.addon']
-        removed = [name for name in stored if name not in config]
-        updated = [name for name in config if name in stored]
-
-        removable = model.search(
-            [('name', 'in', removed)]
-        )
-        updatable = model.search(
-            [('name', 'in', updated)]
-        )
-        removable.unlink()
-
-        for addon in updatable:
-            addon.state = config[addon.name].state
-            del config[addon.name]
-
-        for name, state in config.values():
-            model.create(dict(name=name, state=state))
+        env.clear()
 
     def _to_remove(self, module):
         module.button_immediate_uninstall()
-        _logger.info('Module %s marked to be removed', module.name)
+        _logger.info('Module %s  removed', module.name)
 
     def _to_install(self, module):
         module.button_immediate_install()

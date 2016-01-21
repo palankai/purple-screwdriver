@@ -8,16 +8,15 @@ an already installed module from the config file in order of uninstall.
 
 ## Decision matrix
 
-| Expected status | Status      | Condition            | Action     |
-|:---------------:|:-----------:| -------------------- |:----------:|
-| none            | uninstalled |                      | do nothing |
-| none            | installed   |                      | do nothing |
-| none            | installed   | removed from config  | uninstall  |
-| installed       | uninstalled |                      | install    |
-| installed       | installed   |                      | do nothing |
-| installed       | installed   | ver Avail > ver Inst | upgrade    |
-| upgraded        | uninstalled |                      | install    |
-| upgraded        | installed   |                      | upgrade    |
+| Expected status | Status      | Condition             | Action     |
+|:---------------:|:-----------:| --------------------- |:----------:|
+| removed         | installed   |                       | uninstall  |
+| removed         | uninstalled |                       | do nothing |
+| installed       | uninstalled |                       | install    |
+| installed       | installed   |                       | do nothing |
+| installed       | installed   | ver Avail != ver Inst | upgrade    |
+| upgraded        | uninstalled |                       | install    |
+| upgraded        | installed   |                       | upgrade    |
 
 
 ## Usage
@@ -39,5 +38,6 @@ The module name is the the internal name (like 'sales' instead of 'Sales...').
 addons:
     sales: installed
     hr: updated
+    purchase: removed
 ```
 
