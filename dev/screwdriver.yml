@@ -1,5 +1,3 @@
 ---
 
-- addons:
-    sales: updated
-    hr: installed
+- addons: {}

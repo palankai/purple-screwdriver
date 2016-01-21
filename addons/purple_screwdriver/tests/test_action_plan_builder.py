@@ -131,7 +131,7 @@ class TestActionPlanBuilder(unittest.TestCase):
         stored = {
         }
         expected = {
-            'sale': api.ModuleConfig('sale', 'updated')
+            'sale': api.ModuleConfig('sale', 'upgraded')
         }
         builder = api.ActionPlanBuilder(
             system=system,
@@ -152,7 +152,7 @@ class TestActionPlanBuilder(unittest.TestCase):
         stored = {
         }
         expected = {
-            'sale': api.ModuleConfig('sale', 'updated')
+            'sale': api.ModuleConfig('sale', 'upgraded')
         }
         builder = api.ActionPlanBuilder(
             system=system,

@@ -91,7 +91,7 @@ class ActionPlanBuilder(object):
             ):
                 actions.append(Action(exp.name, 'to update'))
                 continue
-            if exp.state == 'updated':
+            if exp.state == 'upgraded':
                 installed = self.system[exp.name].state == 'installed'
                 if installed:
                     actions.append(Action(exp.name, 'to update'))

@@ -29,51 +29,52 @@ class Screwdriver(Command):
         update = {}
         if options.scratch:
             purplespade.drop_database(options.database)
-            init['screwdriver'] = 1
-        else:
-            update['screwdriver'] = 1
 
         actions = {
             'to remove': self._to_remove,
             'to install': self._to_install,
-            'to update': self._to_update
+            'to update': self._to_upgrade
         }
-
+        with purplespade.openerp_env(
+            db_name=options.database,
+            without_demo=options.without_demo,
+        ) as env:
+            self.ensure_screwdriver(env)
         with purplespade.openerp_env(
             db_name=options.database,
             without_demo=options.without_demo,
             init=init,
             update=update
         ) as env:
-            modules = self.get_modules()
-            action_plan = self.build_action_plan(
-                env, options.conffile, modules
+            modules = self.get_modules(env)
+            assert modules['purple_screwdriver'].state == 'installed'
+            builder = api.ActionPlanBuilder(
+                system=self.get_module_information(env, modules),
+                stored=self.get_module_configuration(env),
+                expected=self.get_expected_configuration(options.conffile),
             )
+            action_plan = builder.build()
             for action in action_plan:
                 actions[action.action](modules[action.name])
-            # TODO Store config changes!!!
-            if action_plan:
-                _logger.info('Appling %s modification', len(action_plan))
-                upgrader = env['base.module.upgrade'].create({})
                 env.cr.commit()
-                upgrader.upgrade_module()
-                _logger.info('Changes applied')
-            else:
-                _logger.info('No addon modification')
+            self.store_configuration(env, builder.stored, builder.expected)
+            env.cr.commit()
+
+            #if action_plan:
+            #    _logger.info('Appling %s modification', len(action_plan))
+            #    upgrader = env['base.module.upgrade'].create({})
+            #    self.store_configuration(env, builder.stored, builder.expected)
+            #    env.cr.commit()
+            #    upgrader.upgrade_module()
+            #    _logger.info('Changes applied')
+            #else:
+            #    _logger.info('No addon modification')
 
     def get_modules(self, env):
         modules = {}
         for m in env['ir.module.module'].search([]):
             modules[m.name] = m
         return modules
-
-    def build_action_plan(self, env, conff, modules):
-        builder = api.ActionPlan(
-            system=self.get_module_information(env, modules),
-            stored=self.get_module_configuration(env),
-            expected=self.get_expected_configuration(env),
-        )
-        return builder.build()
 
     def get_module_information(self, env, modules):
         """
@@ -82,15 +83,15 @@ class Screwdriver(Command):
             dict of api.ModuleState tuple
         """
         odoover = openerp.release.major_version
-        modules = {}
+        result = {}
         for s in modules.values():
             is_outdated = s.state == 'installed' and \
                 api.get_version(odoover, s.latest_version) != \
                 api.get_version(odoover, s.installed_version)
-            modules[s['name']] = api.ModuleState(
-                id=s.id, is_outdated=is_outdated, state=s['state']
+            result[s['name']] = api.ModuleState(
+                name=s['name'], is_outdated=is_outdated, state=s['state']
             )
-        return modules
+        return result
 
 
     def get_module_configuration(self, env):
@@ -99,12 +100,12 @@ class Screwdriver(Command):
 
         Return:
             dict of api.ModuleConfig tuple
-        """
-        stored = env['purple.screwdriver.config.addon'].read(['name', 'state'])
+       """
+        stored = env['purple.screwdriver.config.addon'].search([]).read(['name', 'state'])
         modules = {}
         for s in stored:
             modules[s['name']] = api.ModuleConfig(
-                id=s['id'], name=s['name'], state=s['state']
+                name=s['name'], state=s['state']
             )
         return modules
 
@@ -116,29 +117,58 @@ class Screwdriver(Command):
             dict of api.ModuleConfig
         """
         with(open(conf_file)) as f:
-            conf = yaml.load(f.read())
+            conf = yaml.load(f.read())[0]
         modules = {}
         for name in conf['addons']:
             modules[name] = api.ModuleConfig(
-                id=None, name=name, state=conf['addons'][name]
+                name=name, state=conf['addons'][name]
             )
         return modules
 
+    def ensure_screwdriver(self, env):
+        m = env['ir.module.module'].search(
+            [('name', '=', 'purple_screwdriver')]
+        )
+        if m.state == 'uninstalled':
+            self._to_install(m)
+        if m.state == 'installed':
+            self._to_upgrade(m)
+
+        upgrader = env['base.module.upgrade'].create({})
+        env.cr.commit()
+        upgrader.upgrade_module()
+
+    def store_configuration(self, env, stored, config):
+        model = env['purple.screwdriver.config.addon']
+        removed = [name for name in stored if name not in config]
+        updated = [name for name in config if name in stored]
+
+        removable = model.search(
+            [('name', 'in', removed)]
+        )
+        updatable = model.search(
+            [('name', 'in', updated)]
+        )
+        removable.unlink()
+
+        for addon in updatable:
+            addon.state = config[addon.name].state
+            del config[addon.name]
+
+        for name, state in config.values():
+            model.create(dict(name=name, state=state))
+
     def _to_remove(self, module):
-        module.state = 'to remove'
+        module.button_immediate_uninstall()
         _logger.info('Module %s marked to be removed', module.name)
 
     def _to_install(self, module):
-        module.state_update(
-            'to install', ['uninstalled']
-        )
-        _logger.info('Module %s marked to be installed', module.name)
+        module.button_immediate_install()
+        _logger.info('Module %s is installed.', module.name)
 
-    def _to_update(self, module):
-        module.state_update(
-            'to update', ['installed']
-        )
-        _logger.info('Module %s marked to be updated', module.name)
+    def _to_upgrade(self, module):
+        module.button_immediate_upgrade()
+        _logger.info('Module %s marked to be upgrade', module.name)
 
     def get_parser(self):
         doc_paras = self.__doc__.split('\n\n')

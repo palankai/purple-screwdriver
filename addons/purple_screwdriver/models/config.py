@@ -6,3 +6,7 @@ class Addon(models.Model):
 
     name = fields.Char(string="Name", size=250, required=True)
     state = fields.Char(string="State", size=30, required=True)
+
+    _sql_constraints = [
+        ('name_unique', 'unique(name)', 'name already exists!')
+    ]

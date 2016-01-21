@@ -1,1 +1,1 @@
-from . import tweak
+from . import config

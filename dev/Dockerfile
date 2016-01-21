@@ -12,9 +12,9 @@ RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 ENV LANG en_US.utf8
 
 # Replace the odoo conf
-RUN rm /etc/odoo/openerp-server.conf
-RUN ln -s /usr/src/dev/openerp-server.conf \
-    /etc/odoo/openerp-server.conf
+RUN rm /etc/odoo/openerp-server.conf \
+    && ln -s /usr/src/dev/openerp-server.conf /etc/odoo/openerp-server.conf \
+    && ln -s /usr/src/dev/screwdriver.yml /etc/odoo/screwdriver.yml
 
 # Install python packages
 ADD /requirements.txt /tmp/requirements.txt
