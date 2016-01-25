@@ -11,6 +11,7 @@ Action = collections.namedtuple(
     'Action', ['name', 'action']
 )
 
+
 def get_version(release, module):
     if module is False or module == 'absent':
         return module
@@ -30,25 +31,25 @@ class ActionPlanBuilder(object):
 
         for exp in self.expected.values():
             if(
-                self.system[exp.name].state == 'uninstalled'
-                and exp.state == 'uninstalled'
+                self.system[exp.name].state == 'uninstalled' and
+                exp.state == 'uninstalled'
             ):
                 continue
             if(
-                self.system[exp.name].state == 'installed'
-                and exp.state == 'uninstalled'
+                self.system[exp.name].state == 'installed' and
+                exp.state == 'uninstalled'
             ):
                 actions.append(Action(exp.name, 'to remove'))
                 continue
             if(
-                self.system[exp.name].state == 'uninstalled'
-                and exp.state == 'installed'
+                self.system[exp.name].state == 'uninstalled' and
+                exp.state == 'installed'
             ):
                 actions.append(Action(exp.name, 'to install'))
                 continue
             if(
-                self.system[exp.name].state == 'installed'
-                and exp.state == 'installed'
+                self.system[exp.name].state == 'installed' and
+                exp.state == 'installed'
             ):
                 if self.system[exp.name].is_outdated:
                     actions.append(Action(exp.name, 'to upgrade'))

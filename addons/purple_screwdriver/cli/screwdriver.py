@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import argparse
 import logging
-import textwrap
 
 from openerp.cli import Command
 from openerp.tools import config
@@ -12,12 +11,12 @@ import yaml
 import purplespade
 from .. import api
 
+
 _logger = logging.getLogger(__name__)
+
 
 class Screwdriver(Command):
     """Continous deployment tool"""
-    epilog="""
-    """
 
     def run(self, args):
         options = self.parse_args(args)
@@ -110,7 +109,6 @@ class Screwdriver(Command):
         doc_paras = self.__doc__.split('\n\n')
         parser = argparse.ArgumentParser(
             description=doc_paras[0],
-            epilog=textwrap.dedent(self.epilog),
             prog="odoo-server screwdriver",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
