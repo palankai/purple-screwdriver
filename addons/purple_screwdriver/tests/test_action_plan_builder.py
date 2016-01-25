@@ -1,4 +1,3 @@
-import collections
 import unittest
 
 from .. import api
@@ -34,12 +33,12 @@ class TestActionPlanBuilder(unittest.TestCase):
 
         self.assertEqual(plan, [])
 
-    def test_an_istalled_module_have_to_be_removed(self):
+    def test_an_istalled_module_have_to_be_uninstalled(self):
         system = {
             'sale': api.ModuleState('sale', 'installed', is_outdated=False)
         }
         expected = {
-            'sale': api.ModuleConfig('sale', 'removed')
+            'sale': api.ModuleConfig('sale', 'uninstalled')
         }
         builder = api.ActionPlanBuilder(
             system=system,
@@ -52,12 +51,12 @@ class TestActionPlanBuilder(unittest.TestCase):
             [api.Action('sale', 'to remove')]
         )
 
-    def test_an_unistalled_module_have_to_be_removed(self):
+    def test_an_unistalled_module_have_to_be_uninstalled(self):
         system = {
             'sale': api.ModuleState('sale', 'uninstalled', is_outdated=False)
         }
         expected = {
-            'sale': api.ModuleConfig('sale', 'removed')
+            'sale': api.ModuleConfig('sale', 'uninstalled')
         }
         builder = api.ActionPlanBuilder(
             system=system,
@@ -106,7 +105,7 @@ class TestActionPlanBuilder(unittest.TestCase):
             []
         )
 
-    def test_an_istalled_outdated_module_have_to_be_updated(self):
+    def test_an_istalled_outdated_module_have_to_be_upgraded(self):
         system = {
             'sale': api.ModuleState('sale', 'installed', is_outdated=True)
         }
@@ -124,7 +123,7 @@ class TestActionPlanBuilder(unittest.TestCase):
             [api.Action('sale', 'to upgrade')]
         )
 
-    def test_an_unistalled_module_have_to_be_updated(self):
+    def test_an_unistalled_module_have_to_be_upgraded(self):
         system = {
             'sale': api.ModuleState('sale', 'uninstalled', is_outdated=True)
         }
@@ -142,7 +141,7 @@ class TestActionPlanBuilder(unittest.TestCase):
             [api.Action('sale', 'to install')]
         )
 
-    def test_an_istalled_module_have_to_be_updated(self):
+    def test_an_istalled_module_have_to_be_upgraded(self):
         system = {
             'sale': api.ModuleState('sale', 'installed', is_outdated=False)
         }

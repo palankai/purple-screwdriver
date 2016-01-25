@@ -31,12 +31,12 @@ class ActionPlanBuilder(object):
         for exp in self.expected.values():
             if(
                 self.system[exp.name].state == 'uninstalled'
-                and exp.state == 'removed'
+                and exp.state == 'uninstalled'
             ):
                 continue
             if(
                 self.system[exp.name].state == 'installed'
-                and exp.state == 'removed'
+                and exp.state == 'uninstalled'
             ):
                 actions.append(Action(exp.name, 'to remove'))
                 continue
