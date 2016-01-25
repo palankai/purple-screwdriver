@@ -30,6 +30,11 @@ class ActionPlanBuilder(object):
 
         for exp in self.expected.values():
             if(
+                self.system[exp.name].state == 'uninstalled'
+                and exp.state == 'removed'
+            ):
+                continue
+            if(
                 self.system[exp.name].state == 'installed'
                 and exp.state == 'removed'
             ):
@@ -44,9 +49,9 @@ class ActionPlanBuilder(object):
             if(
                 self.system[exp.name].state == 'installed'
                 and exp.state == 'installed'
-                and self.system[exp.name].is_outdated
             ):
-                actions.append(Action(exp.name, 'to upgrade'))
+                if self.system[exp.name].is_outdated:
+                    actions.append(Action(exp.name, 'to upgrade'))
                 continue
             if exp.state == 'upgraded':
                 installed = self.system[exp.name].state == 'installed'
@@ -55,5 +60,5 @@ class ActionPlanBuilder(object):
                 else:
                     actions.append(Action(exp.name, 'to install'))
                 continue
-            #raise ValueError('Invalid value of %s: %s' % (exp.name, exp.state))
+            raise ValueError('Invalid value of %s: %s' % (exp.name, exp.state))
         return actions

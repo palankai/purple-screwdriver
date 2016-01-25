@@ -10,13 +10,10 @@ class TestActionPlanBuilder(unittest.TestCase):
         system = {
             'sale': api.ModuleState('sale', 'uninstalled', False)
         }
-        stored = {
-        }
         expected = {
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
@@ -27,13 +24,10 @@ class TestActionPlanBuilder(unittest.TestCase):
         system = {
             'sale': api.ModuleState('sale', 'installed', False)
         }
-        stored = {
-        }
         expected = {
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
@@ -44,14 +38,11 @@ class TestActionPlanBuilder(unittest.TestCase):
         system = {
             'sale': api.ModuleState('sale', 'installed', False)
         }
-        stored = {
-            'sale': api.ModuleConfig('sale', 'installed')
-        }
         expected = {
+            'sale': api.ModuleConfig('sale', 'removed')
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
@@ -61,18 +52,33 @@ class TestActionPlanBuilder(unittest.TestCase):
             [api.Action('sale', 'to remove')]
         )
 
-    def test_an_unistalled_module_have_to_be_installed(self):
+    def test_an_unistalled_module_have_to_be_removed(self):
         system = {
             'sale': api.ModuleState('sale', 'uninstalled', False)
         }
-        stored = {
+        expected = {
+            'sale': api.ModuleConfig('sale', 'removed')
+        }
+        builder = api.ActionPlanBuilder(
+            system=system,
+            expected=expected,
+        )
+        plan = builder.build()
+
+        self.assertEqual(
+            plan,
+            []
+        )
+
+    def test_an_unistalled_module_have_to_be_installed(self):
+        system = {
+            'sale': api.ModuleState('sale', 'uninstalled', False)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'installed')
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
@@ -86,14 +92,11 @@ class TestActionPlanBuilder(unittest.TestCase):
         system = {
             'sale': api.ModuleState('sale', 'installed', False)
         }
-        stored = {
-        }
         expected = {
             'sale': api.ModuleConfig('sale', 'installed')
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
@@ -107,35 +110,29 @@ class TestActionPlanBuilder(unittest.TestCase):
         system = {
             'sale': api.ModuleState('sale', 'installed', True)
         }
-        stored = {
-        }
         expected = {
             'sale': api.ModuleConfig('sale', 'installed')
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
 
         self.assertEqual(
             plan,
-            [api.Action('sale', 'to update')]
+            [api.Action('sale', 'to upgrade')]
         )
 
     def test_an_unistalled_module_have_to_be_updated(self):
         system = {
             'sale': api.ModuleState('sale', 'uninstalled', True)
         }
-        stored = {
-        }
         expected = {
             'sale': api.ModuleConfig('sale', 'upgraded')
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
@@ -149,19 +146,16 @@ class TestActionPlanBuilder(unittest.TestCase):
         system = {
             'sale': api.ModuleState('sale', 'installed', False)
         }
-        stored = {
-        }
         expected = {
             'sale': api.ModuleConfig('sale', 'upgraded')
         }
         builder = api.ActionPlanBuilder(
             system=system,
-            stored=stored,
             expected=expected,
         )
         plan = builder.build()
 
         self.assertEqual(
             plan,
-            [api.Action('sale', 'to update')]
+            [api.Action('sale', 'to upgrade')]
         )
