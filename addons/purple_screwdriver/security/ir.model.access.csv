@@ -1,2 +1,0 @@
-id,name,model_id/id,group_id/id,perm_read,perm_write,perm_create,perm_unlink
-access_pruple_screwdriver_config_addon,access_purple_screwdriver_config_addon,model_purple_screwdriver_config_addon,,1,0,0,0

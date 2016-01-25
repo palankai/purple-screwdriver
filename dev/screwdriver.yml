@@ -1,4 +1,6 @@
 ---
 
 - addons:
-    sale: installed
+    sale: upgraded
+    hr: removed
+    crm: installed
