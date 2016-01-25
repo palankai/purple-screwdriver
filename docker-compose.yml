@@ -1,0 +1,25 @@
+data:
+    image: busybox
+    volumes:
+        - /var/lib/postgresql/data
+        - /mnt/extra-addons
+        - /var/lib/odoo
+    command: "chmod a+rwx /var/lib/odoo"
+db:
+    image: postgres:9.4.5
+    environment:
+        - POSTGRES_USER=odoo
+        - POSTGRES_PASSWORD=odoo
+    volumes_from:
+        - data
+odoo:
+    build: .
+    dockerfile: dev/Dockerfile
+    links:
+        - "db:db"
+    ports:
+        - "8069:8069"
+    volumes:
+        - "./:/usr/src"
+    volumes_from:
+        - data
