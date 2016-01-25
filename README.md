@@ -10,8 +10,8 @@ an already installed module from the config file in order of uninstall.
 
 | Expected status | Status      | Condition             | Action     |
 |:---------------:|:-----------:| --------------------- |:----------:|
-| removed         | installed   |                       | uninstall  |
-| removed         | uninstalled |                       | do nothing |
+| uninstalled     | installed   |                       | uninstall  |
+| uninstalled     | uninstalled |                       | do nothing |
 | installed       | uninstalled |                       | install    |
 | installed       | installed   |                       | do nothing |
 | installed       | installed   | ver Avail != ver Inst | upgrade    |
@@ -29,15 +29,15 @@ an already installed module from the config file in order of uninstall.
 
 Yaml configuration. The file should have an entry called addons which
 should be a mapping between name of modules and expected state (as above).
-The module name is the the internal name (like 'sales' instead of 'Sales...').
+The module name is the the internal name (like 'sale' instead of 'Sale...').
 
 ### Example
 
 ```yaml
 ---
 addons:
-    sales: installed
+    sale: installed
     hr: updated
-    purchase: removed
+    purchase: uninstalled
 ```
 
