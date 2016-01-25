@@ -8,7 +8,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_when_an_unistalled_module_not_in_expected_list(self):
         system = {
-            'sale': api.ModuleState('sale', 'uninstalled', False)
+            'sale': api.ModuleState('sale', 'uninstalled', is_outdated=False)
         }
         expected = {
         }
@@ -22,7 +22,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_istalled_module_not_in_expected_list(self):
         system = {
-            'sale': api.ModuleState('sale', 'installed', False)
+            'sale': api.ModuleState('sale', 'installed', is_outdated=False)
         }
         expected = {
         }
@@ -36,7 +36,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_istalled_module_have_to_be_removed(self):
         system = {
-            'sale': api.ModuleState('sale', 'installed', False)
+            'sale': api.ModuleState('sale', 'installed', is_outdated=False)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'removed')
@@ -54,7 +54,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_unistalled_module_have_to_be_removed(self):
         system = {
-            'sale': api.ModuleState('sale', 'uninstalled', False)
+            'sale': api.ModuleState('sale', 'uninstalled', is_outdated=False)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'removed')
@@ -72,7 +72,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_unistalled_module_have_to_be_installed(self):
         system = {
-            'sale': api.ModuleState('sale', 'uninstalled', False)
+            'sale': api.ModuleState('sale', 'uninstalled', is_outdated=False)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'installed')
@@ -90,7 +90,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_istalled_module_have_to_be_installed(self):
         system = {
-            'sale': api.ModuleState('sale', 'installed', False)
+            'sale': api.ModuleState('sale', 'installed', is_outdated=False)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'installed')
@@ -108,7 +108,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_istalled_outdated_module_have_to_be_updated(self):
         system = {
-            'sale': api.ModuleState('sale', 'installed', True)
+            'sale': api.ModuleState('sale', 'installed', is_outdated=True)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'installed')
@@ -126,7 +126,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_unistalled_module_have_to_be_updated(self):
         system = {
-            'sale': api.ModuleState('sale', 'uninstalled', True)
+            'sale': api.ModuleState('sale', 'uninstalled', is_outdated=True)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'upgraded')
@@ -144,7 +144,7 @@ class TestActionPlanBuilder(unittest.TestCase):
 
     def test_an_istalled_module_have_to_be_updated(self):
         system = {
-            'sale': api.ModuleState('sale', 'installed', False)
+            'sale': api.ModuleState('sale', 'installed', is_outdated=False)
         }
         expected = {
             'sale': api.ModuleConfig('sale', 'upgraded')
