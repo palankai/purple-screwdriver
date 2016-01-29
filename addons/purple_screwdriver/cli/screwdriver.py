@@ -122,7 +122,7 @@ class Screwdriver(Command):
         )
         parser.add_argument(
             '--without-demo', dest='without_demo',
-            default='all',
+            default='',
             help="""disable loading demo data for modules to be installed
                 (comma-separated, use "all" for all modules)
                 By default loads demo data """
