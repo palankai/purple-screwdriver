@@ -32,6 +32,7 @@ class Screwdriver(Command):
             db_name=options.database,
             without_demo=options.without_demo,
         ) as env:
+            self.update_module_list(env)
             modules = self.get_modules(env)
             builder = api.ActionPlanBuilder(
                 system=self.get_module_information(env, modules),
@@ -42,6 +43,11 @@ class Screwdriver(Command):
                 actions[action.action](modules[action.name])
                 env.cr.commit()
                 env.clear()
+
+    def update_module_list(self, env):
+        res = env['ir.module.module'].update_list()
+        if any(res):
+            env.cr.commit()
 
     def get_modules(self, env):
         modules = {}
