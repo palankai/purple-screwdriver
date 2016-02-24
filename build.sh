@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t purple-drill-demo -f dev/Dockerfile .
+docker build -t purple-screwdriver -f dev/Dockerfile .

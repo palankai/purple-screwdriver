@@ -6,6 +6,7 @@ import logging
 from openerp.cli import Command
 from openerp.tools import config
 import openerp.release
+import openerp
 import yaml
 
 import purplespade
@@ -19,7 +20,7 @@ class Screwdriver(Command):
     """Continous deployment tool"""
 
     def run(self, args):
-        options = self.parse_args(args)
+        options, odooargs = self.parse_args(args)
         if options.scratch:
             purplespade.drop_database(options.database)
 
@@ -28,20 +29,26 @@ class Screwdriver(Command):
             'to install': self._to_install,
             'to upgrade': self._to_upgrade
         }
-        with purplespade.openerp_env(
-            db_name=options.database,
-            without_demo=options.without_demo,
-        ) as env:
+        purplespade.start_openerp(db_name=options.database, *odooargs)
+        with purplespade.openerp_context() as env:
+            self.update_module_list(env)
             modules = self.get_modules(env)
             builder = api.ActionPlanBuilder(
                 system=self.get_module_information(env, modules),
-                expected=self.get_expected_configuration(options.conffile),
+                expected=self.get_expected_configuration(
+                    options.screwdriver_file
+                ),
             )
             action_plan = builder.build()
             for action in action_plan:
                 actions[action.action](modules[action.name])
                 env.cr.commit()
                 env.clear()
+
+    def update_module_list(self, env):
+        res = env['ir.module.module'].update_list()
+        if any(res):
+            env.cr.commit()
 
     def get_modules(self, env):
         modules = {}
@@ -66,15 +73,15 @@ class Screwdriver(Command):
             )
         return result
 
-    def get_expected_configuration(self, conf_file):
+    def get_expected_configuration(self, screwdriver_file):
         """
         Gives back the expected state of modules
 
         Return:
             dict of api.ModuleConfig
         """
-        with(open(conf_file)) as f:
-            conf = yaml.load(f.read())[0]
+        with(open(screwdriver_file)) as f:
+            conf = yaml.load(f.read())
         modules = {}
         for name in conf['addons']:
             modules[name] = api.ModuleConfig(
@@ -103,13 +110,14 @@ class Screwdriver(Command):
 
     def _to_upgrade(self, module):
         module.button_immediate_upgrade()
-        _logger.info('Module %s marked to be upgrade', module.name)
+        _logger.info('Module %s is upgraded', module.name)
 
     def get_parser(self):
         doc_paras = self.__doc__.split('\n\n')
         parser = argparse.ArgumentParser(
             description=doc_paras[0],
             prog="odoo-server screwdriver",
+            epilog="You can also use any of openerp options",
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         parser.add_argument(
@@ -121,19 +129,14 @@ class Screwdriver(Command):
             help="Recreate database before test"
         )
         parser.add_argument(
-            '--without-demo', dest='without_demo',
-            default='',
-            help="""disable loading demo data for modules to be installed
-                (comma-separated, use "all" for all modules)
-                By default loads demo data """
-        )
-        parser.add_argument(
-            '-c', '--conf', dest='conffile', required=True,
+            '-f', '--file', dest='screwdriver_file', required=True,
             help='Screwdriver configuration'
         )
         return parser
 
     def parse_args(self, args):
         parser = self.get_parser()
-        options = parser.parse_args(args)
-        return options
+        options, odooargs = parser.parse_known_args(args)
+        if odooargs and odooargs[0] == '--':
+            odooargs = odooargs[1:]
+        return options, odooargs

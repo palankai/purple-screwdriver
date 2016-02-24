@@ -22,14 +22,20 @@ an already installed module from the config file in order of uninstall.
 ## Usage
 
 ```bash
-    $ odoo.py screwdriver -d <database name> -c <screwdriver config>
+    $ odoo.py screwdriver -d <database name> -f <screwdriver config>
 ```
+
+## Options
+
+--scratch
+    Drop and create a database
+
 
 ## Config file
 
 Yaml configuration. The file should have an entry called addons which
 should be a mapping between name of modules and expected state (as above).
-The module name is the the internal name (like 'sale' instead of 'Sale...').
+The module name is the internal name (like 'sale' instead of 'Sale...').
 
 ### Example
 
@@ -41,3 +47,28 @@ addons:
     purchase: uninstalled
 ```
 
+## Development
+
+First, you have to build the image
+
+```bash
+    $ ./build.sh
+```
+It will build an image called `purple-screwdriver`. The you have to create
+a data container.
+
+```bash
+    $ docker run --name purple-screwdriver-data purple-screwdriver
+```
+
+For development, (by default) the odoo.sh expect a container called `database`
+too. It should be a proper postgresql database server.
+You don't have to create database though - the screwdriver will do. Just make
+sure the expected user (for dev superuser recommended).
+For more details about user, database name, etc have a look the 
+`dev/openerp-server.conf`.
+
+```bash
+    $ ./odoo.sh ...             # Odoo entrypoint
+    $ ./odoo.sh screwdriver ... # Screwdriver entrypoint
+    $ ./odoo.sh cli ...         # cli entrypoint
