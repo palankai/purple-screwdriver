@@ -1,1 +1,1 @@
-purple-spade
+purple-spade>=0.3

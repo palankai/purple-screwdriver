@@ -19,6 +19,7 @@ RUN rm /etc/odoo/openerp-server.conf \
 # Install python packages
 ADD /requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
+RUN pip install pudb
 
 # Make the complete code available
 ADD . /usr/src/
